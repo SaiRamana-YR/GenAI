@@ -7,7 +7,7 @@ import io
 from PIL import Image
 import os
 # import sounddevice as sd
-import soundfile as sf
+# import soundfile as sf
 import tempfile
 from PyPDF2 import PdfReader
 from dotenv import load_dotenv
@@ -158,18 +158,18 @@ def main():
                 st.warning("Enter some text first.")
     with tab2:
         st.header("Audio Input Processing")
-        duration = st.slider("Recording Duration (seconds)", 1, 10, 5)
-        if st.button("Record and Process Audio"):
-            with st.spinner("Recording and sending to Lex..."):
-                audio_path = record_audio(duration)
-                recognized_text, audio_response = process_audio_with_lex(audio_path, lex_client)
-                if not recognized_text.startswith("Error"):
-                    # st.success(f"Recognized: {recognized_text}")
-                    if audio_response:
-                        audio_data = audio_response.read()
-                        st.audio(audio_data, format='audio/mp3')
-                else:
-                    st.error(recognized_text)
+        # duration = st.slider("Recording Duration (seconds)", 1, 10, 5)
+        # if st.button("Record and Process Audio"):
+        #     with st.spinner("Recording and sending to Lex..."):
+        #         audio_path = record_audio(duration)
+        #         recognized_text, audio_response = process_audio_with_lex(audio_path, lex_client)
+        #         if not recognized_text.startswith("Error"):
+        #             # st.success(f"Recognized: {recognized_text}")
+        #             if audio_response:
+        #                 audio_data = audio_response.read()
+        #                 st.audio(audio_data, format='audio/mp3')
+        #         else:
+        #             st.error(recognized_text)
     with tab3:
         st.header("Ask a Question About a PDF")
         pdf_file = st.file_uploader("Upload a PDF", type=['pdf'])
