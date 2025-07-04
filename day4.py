@@ -1,13 +1,13 @@
 import streamlit as st
-# import boto3
+import boto3
 import json
 import base64
 import requests
 import io
 from PIL import Image
 import os
-# import sounddevice as sd
-# import soundfile as sf
+#import sounddevice as sd
+import soundfile as sf
 import tempfile
 from PyPDF2 import PdfReader
 from dotenv import load_dotenv
@@ -18,6 +18,7 @@ st.set_page_config(
     page_icon="🚀",
     layout="wide"
 )
+
 # Initialize AWS clients
 @st.cache_resource
 def get_aws_clients():
@@ -29,6 +30,7 @@ def get_aws_clients():
     except Exception as e:
         st.error(f"Error initializing AWS clients: {str(e)}")
         return None, None, None
+
 # Audio recording utility
 def record_audio(duration=5, samplerate=16000):
     st.info(f"Recording for {duration} seconds...")
@@ -37,6 +39,7 @@ def record_audio(duration=5, samplerate=16000):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
     sf.write(temp_file.name, recording, samplerate)
     return temp_file.name
+
 def generate_text(prompt, bedrock_client):
     try:
         response = bedrock_client.invoke_model(
@@ -54,6 +57,7 @@ def generate_text(prompt, bedrock_client):
         return result["content"][0]["text"]
     except Exception as e:
         return f"Error generating text: {str(e)}"
+
 def generate_image(prompt, bedrock_client):
     try:
         response = bedrock_client.invoke_model(
@@ -73,6 +77,7 @@ def generate_image(prompt, bedrock_client):
         return image
     except Exception as e:
         return f"Error generating image: {str(e)}"
+
 def call_lambda_summarize(text, lambda_client):
     try:
         payload = {"body": json.dumps({"text": text})}
@@ -85,6 +90,7 @@ def call_lambda_summarize(text, lambda_client):
         return json.loads(response_payload['body']).get("summary", "No summary returned")
     except Exception as e:
         return f"Error calling Lambda: {str(e)}"
+
 def call_api_gateway_translate(text, direction):
     try:
         url = "https://4tud9deny0.execute-api.us-east-1.amazonaws.com/translationstage"
@@ -97,6 +103,7 @@ def call_api_gateway_translate(text, direction):
             return f"API Gateway error: {response.status_code}"
     except Exception as e:
         return f"Error calling API Gateway: {str(e)}"
+
 def process_audio_with_lex(audio_path, lex_client):
     try:
         bot_id = 'ZTEA8D6PJD'
@@ -117,6 +124,7 @@ def process_audio_with_lex(audio_path, lex_client):
         return response.get("inputTranscript", "No text recognized"), response.get("audioStream")
     except Exception as e:
         return f"Error processing audio with Lex: {str(e)}", None
+    
 def ask_question_about_pdf(pdf_file, question, bedrock_client):
     try:
         reader = PdfReader(pdf_file)
@@ -125,17 +133,22 @@ def ask_question_about_pdf(pdf_file, question, bedrock_client):
         return generate_text(prompt, bedrock_client)
     except Exception as e:
         return f"Error processing PDF: {str(e)}"
+
 def main():
     st.title("\U0001F680 AWS Services Integration App")
+
     bedrock_client, lambda_client, lex_client = get_aws_clients()
     if not all([bedrock_client, lambda_client, lex_client]):
         st.error("AWS client init failed.")
         return
+
     tab1, tab2, tab3 = st.tabs(["\U0001F4DD Text Input", "\U0001F3A4 Audio Input", "\U0001F3A4 PdfReader"])
+
     with tab1:
         st.header("Text Input Processing")
         user_input = st.text_area("Enter your text:", height=150)
         direction = st.selectbox("Translation direction:", ["auto-en", "en-hi", "hi-en", "en-es", "es-en"])
+
         if st.button("Process Text", type="primary"):
             if user_input:
                 user_input_lower = user_input.lower()
@@ -156,20 +169,22 @@ def main():
                     st.write(result)
             else:
                 st.warning("Enter some text first.")
+
     with tab2:
         st.header("Audio Input Processing")
-        # duration = st.slider("Recording Duration (seconds)", 1, 10, 5)
-        # if st.button("Record and Process Audio"):
-        #     with st.spinner("Recording and sending to Lex..."):
-        #         audio_path = record_audio(duration)
-        #         recognized_text, audio_response = process_audio_with_lex(audio_path, lex_client)
-        #         if not recognized_text.startswith("Error"):
-        #             # st.success(f"Recognized: {recognized_text}")
-        #             if audio_response:
-        #                 audio_data = audio_response.read()
-        #                 st.audio(audio_data, format='audio/mp3')
-        #         else:
-        #             st.error(recognized_text)
+        duration = st.slider("Recording Duration (seconds)", 1, 10, 5)
+        if st.button("Record and Process Audio"):
+            with st.spinner("Recording and sending to Lex..."):
+                audio_path = record_audio(duration)
+                recognized_text, audio_response = process_audio_with_lex(audio_path, lex_client)
+                if not recognized_text.startswith("Error"):
+                    # st.success(f"Recognized: {recognized_text}")
+                    if audio_response:
+                        audio_data = audio_response.read()
+                        st.audio(audio_data, format='audio/mp3')
+                else:
+                    st.error(recognized_text)
+
     with tab3:
         st.header("Ask a Question About a PDF")
         pdf_file = st.file_uploader("Upload a PDF", type=['pdf'])
@@ -177,6 +192,7 @@ def main():
         if st.button("Ask About PDF") and pdf_file and question:
             result = ask_question_about_pdf(pdf_file, question, bedrock_client)
             st.write(result)
+
 
 if __name__ == "__main__":
     main()
