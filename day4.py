@@ -1,5 +1,5 @@
 import streamlit as st
-import boto3
+# import boto3
 import json
 import base64
 import requests
